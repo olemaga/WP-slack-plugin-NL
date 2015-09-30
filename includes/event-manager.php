@@ -14,7 +14,6 @@ class WP_Slack_Event_Manager {
 	}
 
 	public function has_NL_weekly_tag($tags) {
-		var_dump($tags);
 		foreach ($tags as $tag) {
     		if('#NLWeekly' == $tag->name) {
     			return true;
@@ -114,11 +113,7 @@ class WP_Slack_Event_Manager {
 						return false;
 					}
 					$tags = get_the_tags($post->ID);
-					var_dump($tags);
-					var_dump($old_status);
-					var_dump($new_status);
-					$yolo = $this->has_NL_weekly_tag($tags);
-					if ( 'publish' !== $old_status && 'publish' === $new_status) {
+					if ( 'publish' !== $old_status && 'publish' === $new_status && $this->has_NL_weekly_tag($tags)) {
 						$excerpt = has_excerpt( $post->ID ) ?
 							apply_filters( 'get_the_excerpt', $post->post_excerpt )
 							:
