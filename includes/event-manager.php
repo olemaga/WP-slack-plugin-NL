@@ -112,6 +112,11 @@ class WP_Slack_Event_Manager {
 					if ( ! in_array( $post->post_type, $notified_post_types ) ) {
 						return false;
 					}
+
+					if ( ! in_array( 'news_feed', get_the_category($post->ID) ) ) {
+						return false;
+					}
+
 					$tags = get_the_tags($post->ID);
 					if ( 'publish' !== $old_status && 'publish' === $new_status && $this->has_NL_weekly_tag($tags)) {
 						$excerpt = has_excerpt( $post->ID ) ?
@@ -121,12 +126,14 @@ class WP_Slack_Event_Manager {
 
 						return sprintf(
 							'Jeg kjenner en bot, hun heter anna, anna heter hun.: *<%1$s|%2$s>* by *%3$s*' . "\n" .
-							'> %4$s',
+							'> %4$s' . "\n" .
+							'%5$s',
 
 							get_permalink( $post->ID ),
 							get_the_title( $post->ID ),
 							get_the_author_meta( 'display_name', $post->post_author ),
-							$excerpt
+							$excerpt,
+							implode( ' ' , $tags )
 						);
 					}
 
@@ -206,7 +213,7 @@ class WP_Slack_Event_Manager {
 		) );
 	}
 
-	
+
 	public function notifiy_via_action( array $event, array $setting ) {
 		$notifier = $this->plugin->notifier;
 
