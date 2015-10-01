@@ -13,14 +13,6 @@ class WP_Slack_Event_Manager {
 		$this->dispatch_events();
 	}
 
-	public function has_NL_weekly_tag($tags) {
-		foreach ($tags as $tag) {
-    		if('#NLWeekly' == $tag->name) {
-    			return true;
-    		}
-		}
-		return false;
-	}
 	private function dispatch_events() {
 
 		$events = $this->get_events();
@@ -71,14 +63,29 @@ class WP_Slack_Event_Manager {
 		return apply_filters( 'slack_get_events', array(
 			'post_published' => array(
 				'action'      => 'transition_post_status',
-				'description' => __( 'When a post is published', 'slack' ),
+				'description' => __( 'When a post is published in category', 'slack' ),
 				'default'     => true,
-				'message'     => function( $new_status, $old_status, $post ) {
+				'message'     => function( $category_slug, $new_status, $old_status, $post ) {
 					$notified_post_types = apply_filters( 'slack_event_transition_post_status_post_types', array(
 						'post',
 					) );
 
 					if ( ! in_array( $post->post_type, $notified_post_types ) ) {
+						return false;
+					}
+
+					$categories = get_the_category( $post->ID );
+					$news_feed_category_slug = $category_slug;
+					$post_is_in_news_feed = false;
+
+					foreach ($categories as $category ) {
+						if ( $category->slug === $news_feed_category_slug ) {
+							$post_is_in_news_feed = true;
+							break;
+						}
+					}
+
+					if ( ! $post_is_in_news_feed ) {
 						return false;
 					}
 
@@ -88,131 +95,29 @@ class WP_Slack_Event_Manager {
 							:
 							wp_trim_words( strip_shortcodes( $post->post_content ), 55, '&hellip;' );
 
-						return sprintf(
-							'Post: *<%1$s|%2$s>* by *%3$s*' . "\n" .
-							'> %4$s',
+						$tags = get_the_tags( $post->ID );
+						$tag_names = [];
 
-							get_permalink( $post->ID ),
-							get_the_title( $post->ID ),
-							get_the_author_meta( 'display_name', $post->post_author ),
-							$excerpt
-						);
-					}
-				},
-			),
-			'post_published_with_tag' => array(
-				'action'      => 'transition_post_status',
-				'description' => __( 'Post to Slack from tags', 'slack' ),
-				'default'     => true,
-				'message'     => function( $new_status, $old_status, $post ) {
-					$notified_post_types = apply_filters( 'slack_event_transition_post_status_post_types', array(
-						'post',
-					) );
-
-					if ( ! in_array( $post->post_type, $notified_post_types ) ) {
-						return false;
-					}
-
-					if ( ! in_array( 'news_feed', get_the_category($post->ID) ) ) {
-						return false;
-					}
-
-					$tags = get_the_tags($post->ID);
-					if ( 'publish' !== $old_status && 'publish' === $new_status && $this->has_NL_weekly_tag($tags)) {
-						$excerpt = has_excerpt( $post->ID ) ?
-							apply_filters( 'get_the_excerpt', $post->post_excerpt )
-							:
-							wp_trim_words( strip_shortcodes( $post->post_content ), 55, '&hellip;' );
+						foreach ($tags as $tag ) {
+							$tag_names[] = $tag->name;
+						}
 
 						return sprintf(
-							'Jeg kjenner en bot, hun heter anna, anna heter hun.: *<%1$s|%2$s>* by *%3$s*' . "\n" .
+							'New post published: *<%1$s|%2$s>* by *%3$s*' . "\n" .
 							'> %4$s' . "\n" .
-							'%5$s',
+							'Tags: %5$s',
 
 							get_permalink( $post->ID ),
 							get_the_title( $post->ID ),
 							get_the_author_meta( 'display_name', $post->post_author ),
 							$excerpt,
-							implode( ' ' , $tags )
+							implode( ' ', $tag_names )
 						);
 					}
-
-				},
-			),
-
-			'post_pending_review' => array(
-				'action'      => 'transition_post_status',
-				'description' => __( 'When a post needs review', 'slack' ),
-				'default'     => false,
-				'message'     => function( $new_status, $old_status, $post ) {
-					$notified_post_types = apply_filters( 'slack_event_transition_post_status_post_types', array(
-						'post',
-					) );
-
-					if ( ! in_array( $post->post_type, $notified_post_types ) ) {
-						return false;
-					}
-
-					if ( 'pending' !== $old_status && 'pending' === $new_status ) {
-						$excerpt = has_excerpt( $post->ID ) ?
-							apply_filters( 'get_the_excerpt', $post->post_excerpt )
-							:
-							wp_trim_words( strip_shortcodes( $post->post_content ), 55, '&hellip;' );
-
-						return sprintf(
-							'New post needs review: *<%1$s|%2$s>* by *%3$s*' . "\n" .
-							'> %4$s',
-
-							admin_url( sprintf( 'post.php?post=%d&action=edit', $post->ID ) ),
-							get_the_title( $post->ID ),
-							get_the_author_meta( 'display_name', $post->post_author ),
-							$excerpt
-						);
-					}
-				},
-			),
-
-			'new_comment' => array(
-				'action'      => 'wp_insert_comment',
-				'priority'    => 999,
-				'description' => __( 'When there is a new comment', 'slack' ),
-				'default'     => false,
-				'message'     => function( $comment_id, $comment ) {
-					$comment = is_object( $comment ) ? $comment : get_comment( absint( $comment ) );
-					$post_id = $comment->comment_post_ID;
-
-					$notified_post_types = apply_filters( 'slack_event_wp_insert_comment_post_types', array(
-						'post',
-					) );
-
-					if ( ! in_array( get_post_type( $post_id ), $notified_post_types ) ) {
-						return false;
-					}
-
-					$post_title     = get_the_title( $post_id );
-					$comment_status = wp_get_comment_status( $comment_id );
-
-					// Ignore spam.
-					if ( 'spam' === $comment_status ) {
-						return false;
-					}
-
-					return sprintf(
-						'<%1$s|New comment> by *%2$s* on *<%3$s|%4$s>* (_%5$s_)' . "\n" .
-						'>%6$s',
-
-						admin_url( "comment.php?c=$comment_id&action=editcomment" ),
-						$comment->comment_author,
-						get_permalink( $post_id ),
-						$post_title,
-						$comment_status,
-						preg_replace( "/\n/", "\n>", get_comment_text( $comment_id ) )
-					);
 				},
 			),
 		) );
 	}
-
 
 	public function notifiy_via_action( array $event, array $setting ) {
 		$notifier = $this->plugin->notifier;
@@ -223,11 +128,13 @@ class WP_Slack_Event_Manager {
 		}
 
 		$callback = function() use( $event, $setting, $notifier ) {
+			$message_args = func_get_args();
+			array_unshift($message_args, $setting['category']);
 			$message = '';
 			if ( is_string( $event['message'] ) ) {
 				$message = $event['message'];
 			} else if ( is_callable( $event['message'] ) ) {
-				$message = call_user_func_array( $event['message'], func_get_args() );
+				$message = call_user_func_array( $event['message'], $message_args );
 			}
 
 			if ( ! empty( $message ) ) {
