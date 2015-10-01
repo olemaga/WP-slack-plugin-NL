@@ -352,6 +352,7 @@ class WP_Slack_Post_Type {
 		$columns['service_url'] = __( 'Service URL', 'slack' );
 		$columns['channel']     = __( 'Channel', 'slack' );
 		$columns['bot_name']    = __( 'Bot Name', 'slack' );
+		$columns['category']    = __( 'Category Slug', 'slack');
 		$columns['events']      = __( 'Notified Events', 'slack' );
 
 		return $columns;
@@ -376,6 +377,9 @@ class WP_Slack_Post_Type {
 				break;
 			case 'bot_name':
 				echo ! empty( $setting['username'] ) ? $setting['username'] : '';
+				break;
+			case 'category':
+				echo ! empty( $setting['category'] ) ? $setting['category'] : '';
 				break;
 			case 'events':
 				$events = $this->plugin->event_manager->get_events();

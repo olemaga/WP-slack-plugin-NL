@@ -20,7 +20,7 @@ class WP_Slack_Event_Payload {
 			'channel'      => $this->setting['channel'],
 			'username'     => $this->setting['username'],
 			'text'         => $this->setting['text'],
-			'icon_emoji'   => $this->setting['icon_emoji'],
+			'icon_url'     => $this->setting['icon_url'],
 
 			/**
 			 * @todo icon_emoji with ability to select it in setting.

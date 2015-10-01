@@ -38,12 +38,26 @@
 
 		<tr valign="top">
 			<th scope="row">
-				<label for="slack_setting[icon_emoji]"><?php _e( 'Icon', 'slack' ); ?></label>
+				<label for="slack_setting[icon_url]"><?php _e( 'Icon', 'slack' ); ?></label>
 			</th>
 			<td>
-				<input type="text" class="regular-text" name="slack_setting[icon_emoji]" id="slack_setting[icon_emoji]" value="<?php echo ! empty( $setting['icon_emoji'] ) ? esc_attr( $setting['icon_emoji'] ) : ''; ?>">
+				<input type="text" class="regular-text" name="slack_setting[icon_url]" id="slack_setting[icon_url
+				]" value="<?php echo ! empty( $setting['icon_url'] ) ? esc_attr( $setting['icon_url'] ) : ''; ?>">
 				<p class="description">
-					<?php printf( __( 'Icon (short name) of the bot that delivers the notification. For available icon short name, see <a href="%s" target="blank" title="Emoji Catalog">here</a>. Short name must be wrapped with colon, for instance <code>:rocket:</code>.', 'slack' ), esc_url( 'http://unicodey.com/emoji-data/table.htm' ) ); ?>
+					<?php _e( 'Url to the icon of the bot to delivers the notification.', 'slack' ); ?>
+				</p>
+			</td>
+		</tr>
+
+		<tr valign="top">
+			<th scope="row">
+				<label for="slack_setting[category]"><?php _e( 'Category Slug', 'slack' ); ?></label>
+			</th>
+			<td>
+				<input type="text" class="regular-text" name="slack_setting[category]" id="slack_setting[category
+				]" value="<?php echo ! empty( $setting['category'] ) ? esc_attr( $setting['category'] ) : ''; ?>">
+				<p class="description">
+					<?php _e( 'The Post Category Slug that should trigger Slack notifications', 'slack' ); ?>
 				</p>
 			</td>
 		</tr>
